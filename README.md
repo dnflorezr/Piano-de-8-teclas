@@ -5,6 +5,12 @@ Código del proyecto descrito en el anteproyecto
 El hardware está descrito en Python con MyHDL, se simula con bancos de prueba
 en Python y se convierte a VHDL para sintetizar en Vivado.
 
+## Uso de IA
+
+En este proyecto se usó IA (Claude) para revisar el anteproyecto y generar el
+código, las pruebas y la documentación. Qué se hizo, cómo se verificó y qué queda
+pendiente está en [docs/VERIFICACION_USO_IA.md](docs/VERIFICACION_USO_IA.md).
+
 ## Estructura
 
 ```
