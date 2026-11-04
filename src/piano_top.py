@@ -6,9 +6,12 @@ Puertos:
   teclas   SW7..SW0  (SW0 = C4 ... SW7 = C5)
   volumen  SW15..SW13 (8 niveles de ciclo de trabajo)
   melodia  BTNU: inicia / detiene la melodía automática
+  anterior BTNL: canción anterior   (extensión: varias canciones)
+  siguiente BTNR: canción siguiente
   tono     AUD_PWM (drenador abierto: '0' o 'Z', ver manual de la placa)
   aud_en   AUD_SD  (habilita el amplificador de audio)
   leds     LD7..LD0 (nota que suena)
+  led_cancion LD11..LD8 (canción elegida, un LED encendido)
 """
 from myhdl import (block, always_seq, always_comb, Signal, ResetSignal,
                    intbv)
@@ -23,15 +26,16 @@ from generador_tono import generador_tono
 from pwm_volumen import pwm_volumen
 from salida_drenador_abierto import salida_drenador_abierto
 from melodia_fsm import melodia_fsm
+from selector_cancion import selector_cancion
 
 UNO_CALIENTE = tuple(1 << k for k in range(8))
 
 
 @block
-def piano_top(clk, rst, teclas, volumen, melodia, tono, aud_en, leds,
-              FCLK=P.FCLK_PLACA, CON_MELODIA=True,
+def piano_top(clk, rst, teclas, volumen, melodia, anterior, siguiente, tono,
+              aud_en, leds, led_cancion, FCLK=P.FCLK_PLACA, CON_MELODIA=True,
               T_TIEMPO=P.T_TIEMPO, T_PAUSA=P.T_PAUSA,
-              T_ANTIRREBOTE=P.T_ANTIRREBOTE, MELODIA=P.MELODIA):
+              T_ANTIRREBOTE=P.T_ANTIRREBOTE, CANCIONES=P.CANCIONES):
     TABLA = P.tabla_divisores(FCLK)
     NMAX = max(TABLA) + 1
 
@@ -43,9 +47,13 @@ def piano_top(clk, rst, teclas, volumen, melodia, tono, aud_en, leds,
     teclas_s = Signal(intbv(0)[8:])
     volumen_s = Signal(intbv(0)[3:])
     melodia_s = Signal(bool(0))
+    anterior_s = Signal(bool(0))
+    siguiente_s = Signal(bool(0))
     u_sync_t = sincronizador(clk, rst_s, teclas, teclas_s)
     u_sync_v = sincronizador(clk, rst_s, volumen, volumen_s)
     u_sync_m = sincronizador(clk, rst_s, melodia, melodia_s)
+    u_sync_a = sincronizador(clk, rst_s, anterior, anterior_s)
+    u_sync_s = sincronizador(clk, rst_s, siguiente, siguiente_s)
 
     # ---- detección de tecla activa ----
     idx_tecla = Signal(intbv(0, min=0, max=8))
@@ -57,16 +65,26 @@ def piano_top(clk, rst, teclas, volumen, melodia, tono, aud_en, leds,
     m_nota = Signal(intbv(0, min=0, max=8))
     m_estado = Signal(intbv(0, min=0, max=8))
     inicio = Signal(bool(0))
+    p_anterior = Signal(bool(0))
+    p_siguiente = Signal(bool(0))
+    seleccion = Signal(intbv(0)[2:])
+    leds_c = Signal(intbv(0)[len(led_cancion):])
     bloques_melodia = []
     if CON_MELODIA:
-        notas = tuple(n for n, _ in MELODIA)
-        dur = tuple(P.ciclos(d * T_TIEMPO, FCLK) for _, d in MELODIA)
-        u_ar = antirrebote(clk, rst_s, melodia_s, inicio,
-                           CICLOS=P.ciclos(T_ANTIRREBOTE, FCLK))
-        u_fsm = melodia_fsm(clk, rst_s, inicio, hay_tecla, m_sonando, m_nota,
-                            m_estado, NOTAS=notas, DURACIONES=dur,
+        canciones = tuple(
+            (tuple(n for n, _ in c),
+             tuple(P.ciclos(d * T_TIEMPO, FCLK) for _, d in c))
+            for c in CANCIONES)
+        C_AR = P.ciclos(T_ANTIRREBOTE, FCLK)
+        u_ar = antirrebote(clk, rst_s, melodia_s, inicio, CICLOS=C_AR)
+        u_ar_a = antirrebote(clk, rst_s, anterior_s, p_anterior, CICLOS=C_AR)
+        u_ar_s = antirrebote(clk, rst_s, siguiente_s, p_siguiente, CICLOS=C_AR)
+        u_sel = selector_cancion(clk, rst_s, p_anterior, p_siguiente,
+                                 seleccion, leds_c, N=len(CANCIONES))
+        u_fsm = melodia_fsm(clk, rst_s, inicio, hay_tecla, seleccion,
+                            m_sonando, m_nota, m_estado, CANCIONES=canciones,
                             PAUSA=P.ciclos(T_PAUSA, FCLK))
-        bloques_melodia = [u_ar, u_fsm]
+        bloques_melodia = [u_ar, u_ar_a, u_ar_s, u_sel, u_fsm]
 
     # ---- multiplexor: el teclado manual tiene prioridad ----
     idx_sel = Signal(intbv(0, min=0, max=8))
@@ -114,8 +132,9 @@ def piano_top(clk, rst, teclas, volumen, melodia, tono, aud_en, leds,
     @always_comb
     def salidas():
         leds.next = leds_r
+        led_cancion.next = leds_c
         aud_en.next = aud_en_r
 
-    return (u_rst, u_sync_t, u_sync_v, u_sync_m, u_cod, bloques_melodia,
+    return (u_rst, u_sync_t, u_sync_v, u_sync_m, u_sync_a, u_sync_s, u_cod, bloques_melodia,
             multiplexor, u_tab, u_gen, u_pwm, registro_salidas,
             salida_audio, salidas)

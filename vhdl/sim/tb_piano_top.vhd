@@ -9,7 +9,10 @@
 --         mientras el tono está en alto
 --   CP-8 / CP-15  BTNU inicia la melodía (LED de la primera nota) y una
 --         tecla manual la detiene
--- Tiempo simulado aproximado: 70 ms (en Vivado: "run all"; tarda unos minutos).
+--   Selección de canción: tras el reinicio LD8 está encendido (canción 0);
+--         BTNR pasa a "Estrellita" (LD9), BTNU la inicia (primera nota C4)
+--         y otra pulsación de BTNU la detiene; BTNL vuelve a la canción 0
+-- Tiempo simulado aproximado: 160 ms (en Vivado: "run all"; tarda unos minutos).
 -- AUD_PWM es de drenador abierto: la placa tiene pull-up, por eso aquí se
 -- conecta una resistencia de pull-up ('H') y 'Z' se lee como '1'.
 
@@ -31,6 +34,9 @@ architecture sim of tb_piano_top is
     signal teclas  : unsigned(7 downto 0) := (others => '0');
     signal volumen : unsigned(2 downto 0) := "111";
     signal melodia : std_logic := '0';
+    signal anterior  : std_logic := '0';
+    signal siguiente : std_logic := '0';
+    signal led_cancion : unsigned(3 downto 0);
     signal tono    : std_logic;
     signal aud_en  : std_logic;
     signal leds    : unsigned(7 downto 0);
@@ -45,8 +51,10 @@ begin
 
     dut : entity work.piano_top
         port map (clk => clk, rst => rst, teclas => teclas,
-                  volumen => volumen, melodia => melodia, tono => tono,
-                  aud_en => aud_en, leds => leds);
+                  volumen => volumen, melodia => melodia,
+                  anterior => anterior, siguiente => siguiente,
+                  tono => tono, aud_en => aud_en, leds => leds,
+                  led_cancion => led_cancion);
 
     clk <= not clk after T_CLK / 2 when not fin else '0';
 
@@ -145,6 +153,34 @@ begin
         wait for 1 ms;
         assert leds = 0 report "CP-15: la melodia no se detuvo" severity error;
         report "CP-15: OK";
+
+        -- Selección de canción: BTNR -> "Estrellita" (LD9, empieza en C4)
+        assert led_cancion = "0001"
+            report "Cancion: tras el reinicio no esta LD8" severity error;
+        siguiente <= '1';
+        wait for 12 ms;
+        siguiente <= '0';
+        wait for 12 ms;
+        assert led_cancion = "0010"
+            report "Cancion: BTNR no paso a la cancion 1" severity error;
+        melodia <= '1';
+        wait for 12 ms;
+        melodia <= '0';
+        wait for 12 ms;
+        assert leds = "00000001"
+            report "Cancion 01: no inicio en C4" severity error;
+        melodia <= '1';                   -- segunda pulsación: detener
+        wait for 12 ms;
+        melodia <= '0';
+        wait for 1 ms;
+        assert leds = 0 report "Cancion 01: BTNU no la detuvo" severity error;
+        anterior <= '1';                  -- BTNL: vuelve a la canción 0
+        wait for 12 ms;
+        anterior <= '0';
+        wait for 1 ms;
+        assert led_cancion = "0001"
+            report "Cancion: BTNL no volvio a la cancion 0" severity error;
+        report "Seleccion de cancion: OK";
 
         report "Fin de la simulacion. Errores CP-2: " & integer'image(errores);
         fin <= true;

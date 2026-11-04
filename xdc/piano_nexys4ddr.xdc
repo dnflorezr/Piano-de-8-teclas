@@ -32,9 +32,17 @@ set_property -dict { PACKAGE_PIN V17   IOSTANDARD LVCMOS33 } [get_ports { leds[5
 set_property -dict { PACKAGE_PIN U17   IOSTANDARD LVCMOS33 } [get_ports { leds[6] }]; #Sch=led[6]
 set_property -dict { PACKAGE_PIN U16   IOSTANDARD LVCMOS33 } [get_ports { leds[7] }]; #Sch=led[7]
 
-## Pulsadores: BTNC = reinicio, BTNU = melodía
-set_property -dict { PACKAGE_PIN N17   IOSTANDARD LVCMOS33 } [get_ports { rst }];     #Sch=btnc
-set_property -dict { PACKAGE_PIN M18   IOSTANDARD LVCMOS33 } [get_ports { melodia }]; #Sch=btnu
+## LED LD8..LD11 -> led_cancion[0..3] (canción elegida; extensión)
+set_property -dict { PACKAGE_PIN V16   IOSTANDARD LVCMOS33 } [get_ports { led_cancion[0] }]; #Sch=led[8]
+set_property -dict { PACKAGE_PIN T15   IOSTANDARD LVCMOS33 } [get_ports { led_cancion[1] }]; #Sch=led[9]
+set_property -dict { PACKAGE_PIN U14   IOSTANDARD LVCMOS33 } [get_ports { led_cancion[2] }]; #Sch=led[10]
+set_property -dict { PACKAGE_PIN T16   IOSTANDARD LVCMOS33 } [get_ports { led_cancion[3] }]; #Sch=led[11]
+
+## Pulsadores: BTNC = reinicio, BTNU = melodía, BTNL/BTNR = canción anterior/siguiente
+set_property -dict { PACKAGE_PIN N17   IOSTANDARD LVCMOS33 } [get_ports { rst }];       #Sch=btnc
+set_property -dict { PACKAGE_PIN M18   IOSTANDARD LVCMOS33 } [get_ports { melodia }];   #Sch=btnu
+set_property -dict { PACKAGE_PIN P17   IOSTANDARD LVCMOS33 } [get_ports { anterior }];  #Sch=btnl
+set_property -dict { PACKAGE_PIN M17   IOSTANDARD LVCMOS33 } [get_ports { siguiente }]; #Sch=btnr
 
 ## Audio (alternativa A): AUD_PWM (drenador abierto) y AUD_SD
 set_property -dict { PACKAGE_PIN A11   IOSTANDARD LVCMOS33 } [get_ports { tono }];   #IO_L4N_T0_15 Sch=aud_pwm
@@ -42,7 +50,7 @@ set_property -dict { PACKAGE_PIN D12   IOSTANDARD LVCMOS33 } [get_ports { aud_en
 
 ## Las entradas son asíncronas (interruptores y pulsadores) y pasan por
 ## sincronizadores de dos biestables: no tienen requisitos de temporización.
-set_false_path -from [get_ports { teclas[*] volumen[*] rst melodia }]
+set_false_path -from [get_ports { teclas[*] volumen[*] rst melodia anterior siguiente }]
 
 ## Configuración del dispositivo
 set_property CFGBVS VCCO [current_design]

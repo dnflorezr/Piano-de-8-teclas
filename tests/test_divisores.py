@@ -20,3 +20,11 @@ def test_error_menor_a_0_001_por_ciento():
 
 def test_melodia_valida():
     assert all(0 <= n < 8 and d >= 1 for n, d in P.MELODIA)
+
+
+def test_canciones_validas():
+    # Cuatro canciones para SW9..SW8, todas dentro de C4..C5.
+    assert len(P.CANCIONES) == len(P.NOMBRES_CANCIONES) == 4
+    assert P.CANCIONES[0] == P.MELODIA
+    for c in P.CANCIONES:
+        assert c and all(0 <= n < 8 and d >= 1 for n, d in c)

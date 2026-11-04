@@ -5,7 +5,7 @@
 **Placa / herramienta:** Nexys 4 DDR (Artix-7 XC7A100T) / Vivado
 **Lenguaje:** MyHDL (Python) convertido a VHDL
 **Autores:** Diego Florez Rojas, Andres Moreno Plazas
-**Fecha de esta declaración:** 3 de noviembre de 2026
+**Fecha de esta declaración:** 3 de noviembre de 2026 (actualizada el 4 de noviembre de 2026)
 
 Este documento declara de forma transparente qué partes del proyecto se hicieron
 con ayuda de inteligencia artificial, qué herramienta se usó, cómo se verificó
@@ -19,7 +19,7 @@ lo que produjo y qué queda bajo responsabilidad del equipo.
 |---|---|
 | Herramienta | Claude (Anthropic), usado a través de Claude Code en la web (claude.ai) |
 | Modalidad | Conversación con el asistente, que además ejecutó código (Python, pytest, GHDL) en un entorno en la nube |
-| Período de uso | 2 y 3 de noviembre de 2026 |
+| Período de uso | 2 al 4 de noviembre de 2026 |
 | Quién la usó | Diego Florez Rojas |
 
 ## 2. Para qué se usó la IA
@@ -33,6 +33,12 @@ lo que produjo y qué queda bajo responsabilidad del equipo.
 | 5 | Conversión a VHDL | Escribió `convertir_vhdl.py`, generó `vhdl/piano_top.vhd` y los módulos por separado, y escribió el banco de prueba VHDL `vhdl/sim/tb_piano_top.vhd`. | — | `vhdl/` |
 | 6 | Restricciones y proyecto de Vivado | Escribió `xdc/piano_nexys4ddr.xdc` a partir del archivo maestro Nexys-4-DDR-Master.xdc y el script `crear_proyecto_vivado.tcl`. | Debe confirmar los pines contra el archivo maestro oficial de Digilent al sintetizar. | `xdc/`, `crear_proyecto_vivado.tcl` |
 | 7 | Documentación | Escribió el `README.md` y este documento. | Revisa y firma esta declaración (sección 7). | `README.md`, `docs/VERIFICACION_USO_IA.md` |
+| 8 | **Extensión: varias canciones** (4/11/2026) | Propuso y escribió tres canciones más de dominio público dentro de C4–C5, la selección con BTNL/BTNR y LD8–LD11 (`selector_cancion.py`), el cambio de la FSM para guardar varias canciones, 7 pruebas nuevas y la actualización del XDC y del banco VHDL. | Pidió agregar canciones y eligió el control con BTNL/BTNR. Debe validar las decisiones 7 y 9 de la sección 4. | `src/parametros.py`, `src/selector_cancion.py`, `src/melodia_fsm.py`, `tests/test_selector_cancion.py` |
+
+**Nota sobre el alcance:** la propuesta 10 pide una melodía automática. Tener
+varias canciones y elegirlas con BTNL/BTNR es una **extensión** que el equipo
+decidió agregar después de probar el diseño base en la placa; no está en el
+anteproyecto.
 
 **No se usó IA** para definir el tema del proyecto (lo fija la propuesta 10 del
 curso) ni para elegir la placa y la herramienta.
@@ -43,13 +49,13 @@ Ningún resultado de la IA se tomó como correcto sin una prueba que lo respalde
 
 | Verificación | Resultado | Estado | Quién la ejecutó |
 |---|---|---|---|
-| Pruebas MyHDL: `cd tests && python -m pytest -v` | **23 de 23 pasan** (≈15 s). Repetido el 3/11/2026 sobre el código de este repositorio. | Hecho | IA (entorno en la nube); el equipo debe repetirlo en su PC |
+| Pruebas MyHDL: `cd tests && python -m pytest -v` | **30 de 30 pasan** (≈16 s) con la extensión de canciones (4/11/2026). La versión base tenía 23. | Hecho | IA (entorno en la nube); el equipo debe repetirlo en su PC |
 | Codificador con prioridad, 256 combinaciones (CP-3) | Las 256 entradas dan la tecla de menor número | Hecho | IA |
 | Tabla II: `python src/parametros.py` | Divisores N y frecuencias iguales a la Tabla II; error máximo 0,0004 % | Hecho | IA, contra la tabla calculada por el equipo |
-| Simulación del VHDL convertido a 100 MHz (`tb_piano_top.vhd`) | Pasó en GHDL | Hecho | IA (GHDL en la nube) |
+| Simulación del VHDL convertido a 100 MHz (`tb_piano_top.vhd`) | Pasó en GHDL, también con la selección de canción (4/11/2026) | Hecho | IA (GHDL en la nube) |
 | Simulación del VHDL en el simulador de Vivado | — | **Pendiente** | Equipo |
-| Síntesis, implementación y bitstream en Vivado | — | **Pendiente** | Equipo |
-| Prueba en la placa (sonido con audífonos, 8 notas, 8 niveles de volumen, melodía) | — | **Pendiente** | Equipo |
+| Síntesis, implementación y bitstream en Vivado | Versión base: bitstream generado en Vivado 2026.1. Con la extensión: pendiente | Base hecha; extensión **pendiente** | Equipo |
+| Prueba en la placa (sonido con audífonos, 8 notas, 8 niveles de volumen, melodía) | Versión base: suena y funciona. Con la extensión (BTNL/BTNR, LD8–LD11, 4 canciones): pendiente | Base hecha; extensión **pendiente** | Equipo |
 
 ### Errores de la IA detectados por las pruebas
 
@@ -63,6 +69,10 @@ de entregarlo:
 2. **Salida triestado no conectada.** MyHDL 0.11 no conecta el driver triestado
    de AUD_PWM al puerto al convertir a VHDL. `convertir_vhdl.py` corrige esa
    línea automáticamente (`tono <= 'Z'` / `'0'`).
+3. **Rutas con espacios en el script de Vivado.** `crear_proyecto_vivado.tcl`
+   pasaba las rutas del XDC y del banco de prueba sin `[list ...]`, y Vivado
+   las partía en la carpeta `Piano de 8 teclas`. Lo detectó el equipo al crear
+   el proyecto; se corrigió el 4/11/2026.
 
 ## 4. Decisiones de diseño que tomó la IA y que el equipo debe validar
 
@@ -78,8 +88,9 @@ un solo lugar.
 | 4 | AUD_PWM como drenador abierto ('0' o 'Z'), como pide el manual de la Nexys 4 DDR | ☐ |
 | 5 | AUD_SD = 0 durante el reinicio y 1 el resto del tiempo | ☐ |
 | 6 | BTNU con antirrebote de 10 ms; la melodía no arranca si hay una tecla accionada | ☐ |
-| 7 | Melodía de ejemplo: "Himno a la alegría" (dominio público), unidad de 125 ms, pausa de 30 ms | ☐ |
+| 7 | Canciones (dominio público, solo C4–C5): 0 "Himno a la alegría", 1 "Estrellita, ¿dónde estás?", 2 "Los pollitos dicen", 3 "María tenía un corderito"; unidad de 125 ms, pausa de 30 ms | ☐ |
 | 8 | El estado END de la Fig. 2 se llama `FIN` (END es palabra reservada en VHDL) | ☐ |
+| 9 | Selección: BTNR siguiente, BTNL anterior, da la vuelta; LD8–LD11 muestran la canción; se lee al pulsar BTNU (cambiarla mientras suena no afecta); el reinicio vuelve a la canción 0 | ☐ |
 
 ## 5. Comprensión del código por parte del equipo
 
@@ -89,6 +100,7 @@ Para poder sustentar el proyecto, cada integrante debe poder explicar sin ayuda:
 - [ ] Por qué hay dos biestables en cascada en las entradas (metaestabilidad).
 - [ ] Cómo el filtro pasabajos de la etapa de audio convierte el ciclo de trabajo del PWM en amplitud.
 - [ ] Los estados y transiciones de la FSM de la melodía (IDLE, LOAD, PLAY, GAP, FIN) y qué pasa al accionar una tecla durante la melodía.
+- [ ] Cómo se guardan las cuatro canciones en una sola ROM y cómo la FSM usa la posición inicial y final de la canción elegida.
 - [ ] Qué verifica cada caso de prueba de la Tabla III y qué prueba de `tests/` lo cubre.
 - [ ] Cómo se pasa de MyHDL a VHDL y qué corrige `convertir_vhdl.py`.
 
