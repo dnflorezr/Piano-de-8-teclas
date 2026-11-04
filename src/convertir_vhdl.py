@@ -16,6 +16,7 @@ from tabla_divisores import tabla_divisores
 from generador_tono import generador_tono
 from pwm_volumen import pwm_volumen
 from melodia_fsm import melodia_fsm
+from selector_cancion import selector_cancion
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 DIR_VHDL = os.path.join(AQUI, "..", "vhdl")
@@ -23,12 +24,15 @@ DIR_MOD = os.path.join(DIR_VHDL, "modulos")
 
 
 def top():
-    clk, rst, melodia, aud_en = (Signal(bool(0)) for _ in range(4))
+    clk, rst, melodia, anterior, siguiente, aud_en = (
+        Signal(bool(0)) for _ in range(6))
     teclas = Signal(intbv(0)[8:])
     volumen = Signal(intbv(0)[3:])
     leds = Signal(intbv(0)[8:])
+    led_cancion = Signal(intbv(0)[4:])
     tono = TristateSignal(bool(0))
-    inst = piano_top(clk, rst, teclas, volumen, melodia, tono, aud_en, leds)
+    inst = piano_top(clk, rst, teclas, volumen, melodia, anterior, siguiente,
+                     tono, aud_en, leds, led_cancion)
     inst.convert(hdl="VHDL", path=DIR_VHDL, name="piano_top")
     conectar_drenador_abierto(os.path.join(DIR_VHDL, "piano_top.vhd"), "tono")
 
@@ -75,11 +79,16 @@ def modulos():
                         Signal(bool(0)), Signal(bool(0))), "generador_tono")
     conv(pwm_volumen(clk, rst, Signal(intbv(0)[3:]), Signal(bool(0))),
          "pwm_volumen")
-    conv(melodia_fsm(clk, rst, Signal(bool(0)), Signal(bool(0)), Signal(bool(0)),
+    canciones = [([n for n, _ in c], [P.ciclos(d * P.T_TIEMPO) for _, d in c])
+                 for c in P.CANCIONES]
+    conv(melodia_fsm(clk, rst, Signal(bool(0)), Signal(bool(0)),
+                     Signal(intbv(0)[2:]), Signal(bool(0)),
                      Signal(intbv(0, min=0, max=8)), Signal(intbv(0, min=0, max=8)),
-                     NOTAS=[n for n, _ in P.MELODIA],
-                     DURACIONES=[P.ciclos(d * P.T_TIEMPO) for _, d in P.MELODIA],
-                     PAUSA=P.ciclos(P.T_PAUSA)), "melodia_fsm")
+                     CANCIONES=canciones, PAUSA=P.ciclos(P.T_PAUSA)),
+         "melodia_fsm")
+    conv(selector_cancion(clk, rst, Signal(bool(0)), Signal(bool(0)),
+                          Signal(intbv(0)[2:]), Signal(intbv(0)[4:]),
+                          N=len(P.CANCIONES)), "selector_cancion")
 
 
 def limpiar_encabezados():

@@ -1,5 +1,5 @@
-"""Máquina de estados de la melodía: CP-7, CP-8, CP-9, CP-10, CP-15 y
-detención con una segunda pulsación de BTNU."""
+"""Máquina de estados de la melodía: CP-7, CP-8, CP-9, CP-10, CP-15,
+detención con una segunda pulsación de BTNU y selección de canción."""
 from myhdl import (block, instance, always, Signal, ResetSignal, intbv,
                    StopSimulation)
 
@@ -10,6 +10,9 @@ IDLE, LOAD, PLAY, GAP, FIN = range(5)
 NOTAS = (2, 0, 7, 7)            # E4, C4, C5, C5 (repetición: la separa GAP)
 DUR = (10, 5, 8, 6)
 PAUSA = 3
+NOTAS_B = (5, 6, 1)             # segunda canción: A4, B4, D4
+DUR_B = (4, 7, 2)
+CANCIONES = ((NOTAS, DUR), (NOTAS_B, DUR_B))   # SEL 2 y 3 -> canción 0
 
 
 def armar():
@@ -18,6 +21,7 @@ def armar():
         rst=ResetSignal(1, active=1, isasync=False),
         inicio=Signal(bool(0)),
         tecla=Signal(bool(0)),
+        sel=Signal(intbv(0)[2:]),
         sonando=Signal(bool(0)),
         nota=Signal(intbv(0, min=0, max=8)),
         estado=Signal(intbv(0, min=0, max=8)),
@@ -27,9 +31,9 @@ def armar():
 
 @block
 def dut(s):
-    return melodia_fsm(s["clk"], s["rst"], s["inicio"], s["tecla"],
+    return melodia_fsm(s["clk"], s["rst"], s["inicio"], s["tecla"], s["sel"],
                        s["sonando"], s["nota"], s["estado"],
-                       NOTAS=NOTAS, DURACIONES=DUR, PAUSA=PAUSA)
+                       CANCIONES=CANCIONES, PAUSA=PAUSA)
 
 
 @block
@@ -58,8 +62,12 @@ def comprimir(tr):
     return [(c[0], c[1], d) for c, d in res]
 
 
-def test_cp8_cp9_cp10_melodia_completa():
+def tocar_completa(sel, notas, dur, cambiar_sel_a=None):
+    """Toca la canción `sel` de principio a fin y compara la secuencia de
+    estados con (notas, dur). Si cambiar_sel_a no es None, mueve los
+    interruptores en plena canción (no debe afectar)."""
     s = armar()
+    s["sel"] = Signal(intbv(sel)[2:])
     tr = []
 
     @block
@@ -71,7 +79,11 @@ def test_cp8_cp9_cp10_melodia_completa():
             yield s["clk"].posedge
             del tr[:]
             yield pulso(s)
-            for _ in range(sum(DUR) + len(DUR) * (PAUSA + 1) + 10):
+            if cambiar_sel_a is not None:
+                for _ in range(dur[0] // 2):
+                    yield s["clk"].posedge
+                s["sel"].next = cambiar_sel_a
+            for _ in range(sum(dur) + len(dur) * (PAUSA + 1) + 10):
                 yield s["clk"].posedge
             raise StopSimulation
         return dut(s), traza(s, tr), reloj(s["clk"]), estimulo
@@ -82,12 +94,29 @@ def test_cp8_cp9_cp10_melodia_completa():
     assert seq[0][0] == IDLE and seq[-1][0] == IDLE
     cuerpo = seq[1:-1]
     esperado = []
-    for k, (n, d) in enumerate(zip(NOTAS, DUR)):
+    for n, d in zip(notas, dur):
         esperado += [(LOAD, None, 1), (PLAY, n, d), (GAP, None, PAUSA)]
     esperado += [(FIN, None, 1)]
     assert cuerpo == esperado, cuerpo
     # 'sonando' solo en PLAY
     assert all(son == (e == PLAY) for e, son, _ in tr)
+
+
+def test_cp8_cp9_cp10_melodia_completa():
+    tocar_completa(0, NOTAS, DUR)
+
+
+def test_seleccion_segunda_cancion():
+    tocar_completa(1, NOTAS_B, DUR_B)
+
+
+def test_seleccion_sin_cancion_toca_la_primera():
+    tocar_completa(3, NOTAS, DUR)
+
+
+def test_cambiar_seleccion_durante_cancion_no_afecta():
+    tocar_completa(1, NOTAS_B, DUR_B, cambiar_sel_a=0)
+    tocar_completa(0, NOTAS, DUR, cambiar_sel_a=1)
 
 
 def detener(accion):
