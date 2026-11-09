@@ -11,8 +11,8 @@ set_property target_language VHDL [current_project]
 add_files -norecurse [list \
     [file join $raiz vhdl pck_myhdl_011.vhd] \
     [file join $raiz vhdl piano_top.vhd]]
-add_files -fileset constrs_1 -norecurse [file join $raiz xdc piano_nexys4ddr.xdc]
-add_files -fileset sim_1 -norecurse [file join $raiz vhdl sim tb_piano_top.vhd]
+add_files -fileset constrs_1 -norecurse [list [file join $raiz xdc piano_nexys4ddr.xdc]]
+add_files -fileset sim_1 -norecurse [list [file join $raiz vhdl sim tb_piano_top.vhd]]
 
 set_property top piano_top [current_fileset]
 set_property top tb_piano_top [get_filesets sim_1]

@@ -10,16 +10,48 @@ FCLK_PLACA = 100_000_000  # oscilador de 100 MHz de la Nexys 4 DDR
 NOMBRES = ("C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5")
 FRECUENCIAS = (261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25)
 
-# Melodía de ejemplo para el modo automático (la define el equipo):
-# "Himno a la alegría" (Beethoven, dominio público), solo con notas C4..C5.
-# Cada elemento es (índice de nota 0..7, duración en tiempos de negra).
+# Canciones del modo automático (extensión: la propuesta pide una melodía).
+# Todas son de dominio público y usan solo notas C4..C5 (sin alteraciones).
+# Cada canción es una tupla de (índice de nota 0..7, duración en unidades de
+# T_TIEMPO; 2 unidades = negra de 0,25 s). Se elige con BTNL / BTNR (LD8..LD11
+# indican cuál) y suena al pulsar BTNU.
 C4, D4, E4, F4, G4, A4, B4, C5 = range(8)
-MELODIA = (
+
+# 0 (LD8): "Himno a la alegría" (Beethoven)
+HIMNO = (
     (E4, 2), (E4, 2), (F4, 2), (G4, 2),
     (G4, 2), (F4, 2), (E4, 2), (D4, 2),
     (C4, 2), (C4, 2), (D4, 2), (E4, 2),
     (E4, 3), (D4, 1), (D4, 4),
 )
+
+# 1 (LD9): "Estrellita, ¿dónde estás?" (canción tradicional francesa)
+_E1 = ((C4, 2), (C4, 2), (G4, 2), (G4, 2), (A4, 2), (A4, 2), (G4, 4))
+_E2 = ((F4, 2), (F4, 2), (E4, 2), (E4, 2), (D4, 2), (D4, 2), (C4, 4))
+_E3 = ((G4, 2), (G4, 2), (F4, 2), (F4, 2), (E4, 2), (E4, 2), (D4, 4))
+ESTRELLITA = _E1 + _E2 + _E3 + _E3 + _E1 + _E2
+
+# 2 (LD10): "Los pollitos dicen" (canción infantil tradicional)
+POLLITOS = (
+    (C4, 2), (D4, 2), (E4, 2), (F4, 2), (G4, 4), (G4, 4),
+    (A4, 2), (A4, 2), (A4, 2), (A4, 2), (G4, 8),
+    (A4, 2), (A4, 2), (A4, 2), (A4, 2), (G4, 8),
+    (F4, 2), (F4, 2), (F4, 2), (F4, 2), (E4, 4), (E4, 4),
+    (D4, 2), (D4, 2), (D4, 2), (D4, 2), (C4, 8),
+)
+
+# 3 (LD11): "María tenía un corderito" (canción infantil tradicional)
+CORDERITO = (
+    (E4, 3), (D4, 1), (C4, 2), (D4, 2), (E4, 2), (E4, 2), (E4, 4),
+    (D4, 2), (D4, 2), (D4, 4), (E4, 2), (G4, 2), (G4, 4),
+    (E4, 3), (D4, 1), (C4, 2), (D4, 2), (E4, 2), (E4, 2), (E4, 2), (E4, 2),
+    (D4, 2), (D4, 2), (E4, 2), (D4, 2), (C4, 8),
+)
+
+CANCIONES = (HIMNO, ESTRELLITA, POLLITOS, CORDERITO)
+NOMBRES_CANCIONES = ("Himno a la alegría", "Estrellita, ¿dónde estás?",
+                     "Los pollitos dicen", "María tenía un corderito")
+MELODIA = HIMNO  # canción 0 (compatibilidad con el anteproyecto)
 T_TIEMPO = 0.125      # s por unidad de duración (2 unidades = negra de 0,25 s)
 T_PAUSA = 0.030       # s de silencio entre notas (estado GAP)
 T_ANTIRREBOTE = 0.010 # s que BTNU debe permanecer estable

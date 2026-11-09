@@ -16,16 +16,17 @@ pendiente está en [docs/VERIFICACION_USO_IA.md](docs/VERIFICACION_USO_IA.md).
 ```
 codigo/
 ├── src/                        Diseño en MyHDL
-│   ├── parametros.py           Notas, ecuaciones (1)-(3), Tabla II, melodía
+│   ├── parametros.py           Notas, ecuaciones (1)-(3), Tabla II, canciones
 │   ├── piano_top.py            Entidad de nivel superior (Fig. 1, Tabla I)
 │   ├── sincronizador_reset.py  Reinicio síncrono a partir de BTNC
-│   ├── sincronizador.py        Dos biestables en cascada (teclas, volumen, BTNU)
-│   ├── antirrebote.py          Antirrebote de BTNU + pulso de un ciclo
+│   ├── sincronizador.py        Dos biestables en cascada (teclas, volumen, botones)
+│   ├── antirrebote.py          Antirrebote de BTNU/BTNL/BTNR + pulso de un ciclo
 │   ├── codificador_prioridad.py Detector de tecla activa (gana la de menor número)
 │   ├── tabla_divisores.py      Índice de nota → divisor N
 │   ├── generador_tono.py       Contador de 18 bits, f = fclk / 2N
 │   ├── pwm_volumen.py          PWM de 8 bits (~390 kHz), 8 niveles con SW15–SW13
-│   ├── melodia_fsm.py          FSM IDLE/LOAD/PLAY/GAP/FIN (Fig. 2)
+│   ├── melodia_fsm.py          FSM IDLE/LOAD/PLAY/GAP/FIN (Fig. 2), varias canciones
+│   ├── selector_cancion.py     BTNL / BTNR eligen la canción (extensión)
 │   ├── salida_drenador_abierto.py  AUD_PWM: '0' o 'Z'
 │   └── convertir_vhdl.py       Genera el VHDL
 ├── tests/                      Bancos de prueba MyHDL (pytest), CP-1 a CP-15
@@ -44,7 +45,9 @@ codigo/
 |---|---|
 | SW0 … SW7 | Teclas C4 D4 E4 F4 G4 A4 B4 C5 |
 | SW13 … SW15 | Volumen (000 = 12,5 % … 111 = 100 % de ciclo de trabajo) |
-| BTNU | Inicia la melodía automática; otra pulsación la detiene |
+| BTNU | Inicia la canción elegida; otra pulsación la detiene |
+| BTNR / BTNL | Canción siguiente / anterior (da la vuelta) |
+| LD8 … LD11 | Canción elegida (una encendida) |
 | BTNC | Reinicio |
 | LD0 … LD7 | Nota que está sonando |
 | Conector de audio | Audífonos o parlante amplificado (la placa no trae altavoz) |
@@ -54,7 +57,7 @@ codigo/
 ```bash
 pip install -r requirements.txt
 
-# 1. Simulación MyHDL (23 pruebas, ~15 s)
+# 1. Simulación MyHDL (30 pruebas, ~16 s)
 cd tests
 python -m pytest -v
 
@@ -73,7 +76,7 @@ cd {C:/Users/diego/Piano de 8 teclas/codigo}
 source crear_proyecto_vivado.tcl
 ```
 
-Luego *Run Simulation* (usa `tb_piano_top`, ~70 ms simulados, tarda unos
+Luego *Run Simulation* (usa `tb_piano_top`, ~160 ms simulados, tarda unos
 minutos), *Run Synthesis*, *Run Implementation* y *Generate Bitstream*.
 
 ## Casos de prueba (Tabla III) → pruebas
@@ -94,6 +97,7 @@ minutos), *Run Synthesis*, *Run Implementation* y *Generate Bitstream*.
 | CP-14 | `test_generador_tono::test_cp14_c5_a_c4` |
 | CP-15 | `test_melodia_fsm::test_cp15_tecla_detiene_melodia`, `test_piano_top::test_cp8_cp9_cp10_melodia_y_cp15` |
 | Antirrebote | `test_antirrebote::test_rebotes_y_pulso_unico` |
+| Varias canciones (extensión) | `test_selector_cancion`, `test_melodia_fsm::test_seleccion_*`, `test_melodia_fsm::test_cambiar_seleccion_durante_cancion_no_afecta`, `test_piano_top::test_seleccion_de_cancion_con_btnl_btnr`, `test_divisores::test_canciones_validas` |
 | Tabla II | `test_divisores` |
 
 Las pruebas MyHDL usan un reloj reducido (200 kHz) para que corran en
@@ -121,8 +125,14 @@ prefiere otra, se cambia en un solo lugar.
 5. **AUD_SD** vale 0 durante el reinicio y 1 el resto del tiempo.
 6. **BTNU**: antirrebote de 10 ms y detección de flanco; la melodía no arranca
    si hay una tecla accionada.
-7. **Melodía de ejemplo**: "Himno a la alegría" (dominio público) en C4–C5,
-   unidad de 125 ms y pausa (GAP) de 30 ms. Se cambia en `parametros.py`
-   (`MELODIA`, `T_TIEMPO`, `T_PAUSA`).
+7. **Canciones**: la propuesta pide una melodía; como extensión hay cuatro,
+   todas de dominio público y dentro de C4–C5: 0 "Himno a la alegría",
+   1 "Estrellita, ¿dónde estás?", 2 "Los pollitos dicen" y 3 "María tenía un
+   corderito". Unidad de 125 ms y pausa (GAP) de 30 ms. Se cambian en
+   `parametros.py` (`CANCIONES`, `T_TIEMPO`, `T_PAUSA`); caben hasta 4.
+9. **Selección de canción**: BTNR pasa a la siguiente y BTNL a la anterior
+   (con antirrebote de 10 ms y dando la vuelta); LD8–LD11 muestran cuál está
+   elegida. La FSM la lee al pulsar BTNU, así que cambiarla mientras suena no
+   corta la canción. El reinicio (BTNC) vuelve a la canción 0.
 8. El estado END de la Fig. 2 se llama `FIN` porque `END` es palabra reservada
    de VHDL.
