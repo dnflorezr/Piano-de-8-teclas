@@ -49,7 +49,7 @@ Ningún resultado de la IA se tomó como correcto sin una prueba que lo respalde
 
 | Verificación | Resultado | Estado | Quién la ejecutó |
 |---|---|---|---|
-| Pruebas MyHDL: `cd tests && python -m pytest -v` | **30 de 30 pasan** (≈16 s) con la extensión de canciones (4/11/2026). La versión base tenía 23. | Hecho | IA (entorno en la nube); el equipo debe repetirlo en su PC |
+| Pruebas MyHDL: `cd tests && python -m pytest -v` | **35 de 35 pasan** (≈16 s). La versión base tenía 23; la extensión de canciones llevó a 30 (4/11/2026) y el 18/11/2026 se agregaron 5 pruebas unitarias de los módulos que solo estaban cubiertos por las pruebas del sistema completo (sincronizadores, tabla de divisores y salida de drenador abierto). | Hecho | IA (entorno en la nube); el equipo debe repetirlo en su PC |
 | Codificador con prioridad, 256 combinaciones (CP-3) | Las 256 entradas dan la tecla de menor número | Hecho | IA |
 | Tabla II: `python src/parametros.py` | Divisores N y frecuencias iguales a la Tabla II; error máximo 0,0004 % | Hecho | IA, contra la tabla calculada por el equipo |
 | Simulación del VHDL convertido a 100 MHz (`tb_piano_top.vhd`) | Pasó en GHDL, también con la selección de canción (4/11/2026) | Hecho | IA (GHDL en la nube) |
