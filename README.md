@@ -57,7 +57,7 @@ codigo/
 ```bash
 pip install -r requirements.txt
 
-# 1. Simulación MyHDL (30 pruebas, ~16 s)
+# 1. Simulación MyHDL (35 pruebas, ~16 s)
 cd tests
 python -m pytest -v
 
@@ -99,6 +99,8 @@ minutos), *Run Synthesis*, *Run Implementation* y *Generate Bitstream*.
 | Antirrebote | `test_antirrebote::test_rebotes_y_pulso_unico` |
 | Varias canciones (extensión) | `test_selector_cancion`, `test_melodia_fsm::test_seleccion_*`, `test_melodia_fsm::test_cambiar_seleccion_durante_cancion_no_afecta`, `test_piano_top::test_seleccion_de_cancion_con_btnl_btnr`, `test_divisores::test_canciones_validas` |
 | Tabla II | `test_divisores` |
+| Sincronizadores (entradas y reinicio) | `test_sincronizadores` |
+| Tabla de divisores y salida de drenador abierto | `test_tabla_y_salida` |
 
 Las pruebas MyHDL usan un reloj reducido (200 kHz) para que corran en
 segundos; como todo se calcula con `C = T · fclk` y `N = redondeo(fclk / 2f)`,
